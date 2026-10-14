@@ -311,13 +311,36 @@ struct HiChainMessage {
         }
         guard type == 0x00 else { return .finished }
 
-        guard let raw = tlv.value(0x01),
-              let value = try? JSONSerialization.jsonObject(with: Data(raw)) as? [String: Any],
-              let payload = value["payload"] as? [String: Any] else {
-            throw HuaweiAuthError.unexpected("HiChain JSON could not be decoded")
+        guard let raw = tlv.value(0x01) else {
+            throw HuaweiAuthError.unexpected("HiChain reply has no 0x01 TLV: \(tlv.description)")
         }
+
+        var cleanBytes = raw
+        while let last = cleanBytes.last, last == 0 || last == 32 || last == 10 || last == 13 {
+            cleanBytes.removeLast()
+        }
+
+        let jsonObject: Any
+        do {
+            jsonObject = try JSONSerialization.jsonObject(with: Data(cleanBytes))
+        } catch {
+            let text = String(decoding: raw, as: UTF8.self)
+            throw HuaweiAuthError.unexpected("HiChain JSON parse error: \(error.localizedDescription) (content: '\(text)')")
+        }
+
+        guard let value = jsonObject as? [String: Any] else {
+            throw HuaweiAuthError.unexpected("HiChain JSON root is not an object")
+        }
+
+        if let code = value["errorCode"] as? Int, code != 0 {
+            let reason = (value["errorReason"] as? String) ?? "code \(code)"
+            throw HuaweiAuthError.watchError("HiChain errorCode \(reason)")
+        }
+
+        let payload = (value["payload"] as? [String: Any]) ?? value
         if let code = payload["errorCode"] as? Int, code != 0 {
-            throw HuaweiAuthError.watchError("HiChain errorCode \(code)")
+            let reason = (payload["errorReason"] as? String) ?? "code \(code)"
+            throw HuaweiAuthError.watchError("HiChain errorCode \(reason)")
         }
         if payload["isoSalt"] != nil { return .step(1, payload) }
         if payload["returnCodeMac"] != nil { return .step(2, payload) }
