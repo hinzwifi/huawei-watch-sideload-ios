@@ -9,6 +9,7 @@ struct ContentView: View {
     @State private var copied = false
     @State private var message = ""
     @State private var pickingMusic = false
+    @State private var pickingWatchFace = false
 
     var body: some View {
         NavigationStack {
@@ -24,6 +25,7 @@ struct ContentView: View {
                 } else {
                     watchSection
                     if link.isPaired {
+                        watchFaceSection
                         watchAppsSection
                         musicSection
                         notificationSection
@@ -129,6 +131,22 @@ struct ContentView: View {
                 Text(L("Close Huawei Health before pairing (swipe it up in the app switcher). The watch may ask for confirmation the first time.",
                        "Eşleşmeden önce Huawei Health'i kapat (uygulama değiştiriciden yukarı kaydır). İlk eşleşmede saatin ekranında onay çıkabilir."))
             }
+        }
+    }
+
+    private var watchFaceSection: some View {
+        Section {
+            Button(L("Install custom watch face (.hwt)", "Özel kadran yükle (.hwt)")) { pickingWatchFace = true }
+                .disabled(link.busy != nil)
+                .fontWeight(.semibold)
+        } header: {
+            Text(L("Custom watch faces", "Özel kadranlar"))
+        } footer: {
+            Text(L("Select a .hwt watch face downloaded from AmazFaces or Telegram to install it directly onto the watch.",
+                   "AmazFaces veya Telegram'dan indirilen .hwt kadran dosyasını seçip doğrudan saate yükleyin."))
+        }
+        .fileImporter(isPresented: $pickingWatchFace, allowedContentTypes: [.data], allowsMultipleSelection: false) { result in
+            if case .success(let url) = result { link.uploadWatchFace(url) }
         }
     }
 

@@ -431,6 +431,22 @@ final class WatchLink: NSObject, ObservableObject {
         }
     }
 
+    func uploadWatchFace(_ url: URL) {
+        run(L("Uploading watch face", "Kadran yükleniyor")) { session in
+            self.watchAppProgress = 0
+            defer { self.watchAppProgress = nil }
+            let accessing = url.startAccessingSecurityScopedResource()
+            defer { if accessing { url.stopAccessingSecurityScopedResource() } }
+            let data = try Data(contentsOf: url)
+            let name = url.lastPathComponent
+            self.append(.info, L("Uploading watch face: \(name), \(data.count / 1024) KB", "Kadran yükleniyor: \(name), \(data.count / 1024) KB"))
+            try await session.uploadFile([UInt8](data), name: name, type: FileUpload.FileType.watchface) { fraction in
+                self.watchAppProgress = fraction
+            }
+            self.append(.success, L("Watch face uploaded successfully!", "Kadran başarıyla yüklendi!"))
+        }
+    }
+
     private static func audioMetadata(_ url: URL) async -> (title: String, artist: String) {
         let asset = AVURLAsset(url: url)
         var title = url.deletingPathExtension().lastPathComponent
