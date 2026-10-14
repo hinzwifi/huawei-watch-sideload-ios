@@ -146,7 +146,7 @@ struct ContentView: View {
                    "AmazFaces veya Telegram'dan indirilen .hwt kadran dosyasını seçip doğrudan saate yükleyin."))
         }
         .fileImporter(isPresented: $pickingWatchFace, allowedContentTypes: [.data], allowsMultipleSelection: false) { result in
-            if case .success(let url) = result { link.uploadWatchFace(url) }
+            if case .success(let urls) = result, let url = urls.first { link.uploadWatchFace(url) }
         }
     }
 
