@@ -1,4 +1,6 @@
 # --- Personal / secret: never committed ---
+.env
+*.env
 Config/local.env
 signing/*
 !signing/README.md

@@ -40,7 +40,8 @@ def entries(data):
 
 
 def check(path):
-    data = open(path, "rb").read()
+    with open(path, "rb") as f:
+        data = f.read()
     errors, notes = [], []
     bundle, files, sign = entries(data)
     if not sign:
